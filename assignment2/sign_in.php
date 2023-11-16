@@ -1,10 +1,14 @@
 <?php
   
-    printf("There are %d items in your basket", 3); echo "<br> ";
+    require_once 'Login.php';
 	
-	printf("The result is: $%.2f", 123.42/12); echo "<br> ";
-  
-  
-  
+	try
+	{
+		$pdo = new PDO($attr, $user, $pass, $opts);
+	}
+	catch(PDOException $e)
+	{
+		throw new PDOException($e->getMessage(), (int)$e->getCode());
+	}
   
 ?>
