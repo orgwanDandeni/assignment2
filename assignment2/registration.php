@@ -10,41 +10,103 @@ try
 	{
 		throw new PDOException($e->getMessage(), (int)$e->getCode());
 	}
+	
+?>
 
-if (
-    isset($_POST['username']) &&
-    isset($_POST['password']) &&
-    isset($_POST['firstname']) &&
-    isset($_POST['lastname']) &&
-    isset($_POST['email'])
-) {
-    $username = get_post($pdo, 'username');
-    $password = get_post($pdo, 'password');
-    $firstname = get_post($pdo, 'firstname');
-    $lastname = get_post($pdo, 'lastname');
-    $email = get_post($pdo, 'email');
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>FORM</title>
+</head>
+<body style="background-image: url('cloud.jpg'); background-repeat: no-repeat; background-size: cover;">
 
-    // Hash the password before storing it
-    $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+<?php
 
-    // Use prepared statements to prevent SQL injection
-    $stmt = $pdo->prepare("INSERT INTO users (username, password, firstname, lastname, email) VALUES (?, ?, ?, ?, ?)");
-    $stmt->execute([$username, $hashedPassword, $firstname, $lastname, $email]);
+$css = file_get_contents("style.css");
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // Validate all fields
+    $username = validateField($_POST['username'], 'Username');
+    $password = validateField($_POST['password'], 'Password');
+    $firstname = validateField($_POST['firstname'], 'First Name');
+    $lastname = validateField($_POST['lastname'], 'Last Name');
+    $email = validateField($_POST['email'], 'Email');
+
+    // If all fields are valid, proceed with database interaction
+    if ($username && $password && $firstname && $lastname && $email) {
+        try {
+            $pdo = new PDO($attr, $user, $pass, $opts);
+
+            // Hash the password before storing it
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+            // Use prepared statements to prevent SQL injection
+            $stmt = $pdo->prepare("INSERT INTO users (username, password, firstname, lastname, email) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$username, $hashedPassword, $firstname, $lastname, $email]);
+
+            echo "Registration successful!";
+        } catch (PDOException $e) {
+            // Handle database connection or query error
+            echo "Error: " . $e->getMessage();
+        }
+    }
+}
+
+function validateField($value, $fieldName)
+{
+    // Check if the field is set and not empty
+    if (!isset($value) || empty($value)) {
+        echo "Error: $fieldName is required.<br>";
+        return false;
+    }
+
+    // Additional validation for specific fields
+    switch ($fieldName) {
+        case 'Username':
+        case 'First Name':
+        case 'Last Name':
+            // Only allow letters
+            if (!ctype_alpha($value)) {
+                echo "Error: $fieldName should contain only letters.<br>";
+                return false;
+            }
+            break;
+        case 'Email':
+            // Check for a valid email format
+            if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                echo "Error: Invalid email format.<br>";
+                return false;
+            }
+            break;
+        case 'Password':
+            // Check for a valid password (at least 8 characters)
+            if (strlen($value) < 8) {
+                echo "Error: Password should be at least 8 characters.<br>";
+                return false;
+            }
+            break;
+    }
+
+    return htmlentities($value); // Return the sanitized value
 }
 
 echo <<<_END
-<form action="registration.php" method="post"><pre>
+<form action="" method="post"><pre>
 Username:
 <input type="text" name="username">
 Password:
-<input type="text" name="password">
+<input type="password" name="password">
 First Name:
 <input type="text" name="firstname">
 Last Name:
 <input type="text" name="lastname">
 E-mail:
 <input type="text" name="email">
-<input type="submit" value="Register">
+<input type="submit" value="SUBMIT">
 </pre></form>
 _END;
 
@@ -74,3 +136,5 @@ function get_post($pdo, $var) {
     return htmlentities($_POST[$var]);
 }
 ?>
+
+</body> </html>
