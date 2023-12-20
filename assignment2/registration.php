@@ -1,16 +1,15 @@
 <?php
-
 require_once 'Login.php';
 
-try
-	{
-		$pdo = new PDO($attr, $user, $pass, $opts);
-	}
-	catch(PDOException $e)
-	{
-		throw new PDOException($e->getMessage(), (int)$e->getCode());
-	}
-	
+// Define variables to avoid undefined variable errors
+$username = $password = $firstname = $lastname = $email = "";
+
+try {
+    $pdo = new PDO($attr, $user, $pass, $opts);
+} catch (PDOException $e) {
+    throw new PDOException($e->getMessage(), (int) $e->getCode());
+}
+
 ?>
 
 <!DOCTYPE html>
@@ -28,7 +27,6 @@ try
 $css = file_get_contents("style.css");
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
     // Validate all fields
     $username = validateField($_POST['username'], 'Username');
     $password = validateField($_POST['password'], 'Password');
@@ -41,11 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             $pdo = new PDO($attr, $user, $pass, $opts);
 
-            // Hash the password before storing it
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-
             // Use prepared statements to prevent SQL injection
             $stmt = $pdo->prepare("INSERT INTO users (username, password, firstname, lastname, email) VALUES (?, ?, ?, ?, ?)");
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
             $stmt->execute([$username, $hashedPassword, $firstname, $lastname, $email]);
 
             echo "Registration successful!";
@@ -58,54 +54,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 function validateField($value, $fieldName)
 {
-    // Check if the field is set and not empty
+    $value = trim($value);
     if (!isset($value) || empty($value)) {
-        echo "Error: $fieldName is required.<br>";
-        return false;
+        return "$fieldName is required.";
     }
 
-    // Additional validation for specific fields
     switch ($fieldName) {
         case 'Username':
         case 'First Name':
         case 'Last Name':
-            // Only allow letters
             if (!ctype_alpha($value)) {
-                echo "Error: $fieldName should contain only letters.<br>";
-                return false;
+                return "$fieldName should contain only letters.";
             }
             break;
         case 'Email':
-            // Check for a valid email format
             if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                echo "Error: Invalid email format.<br>";
-                return false;
+                return "Invalid email format.";
             }
             break;
         case 'Password':
-            // Check for a valid password (at least 8 characters)
             if (strlen($value) < 8) {
-                echo "Error: Password should be at least 8 characters.<br>";
-                return false;
+                return "Password should be at least 8 characters.";
             }
             break;
     }
 
-    return htmlentities($value); // Return the sanitized value
+    return ""; // No error, return an empty string
 }
+
+// ...
+
+// In your HTML, display validation errors
+if ($username && $password && $firstname && $lastname && $email) {
+    // Your database interaction code here
+} else {
+    // Display validation errors
+    echo "<div class='validation-errors'>";
+
+    // Check if the keys are set before accessing them
+    echo isset($_POST['username']) ? validateField($_POST['username'], 'Username') . "<br>" : '';
+    echo isset($_POST['password']) ? validateField($_POST['password'], 'Password') . "<br>" : '';
+    // Repeat for other fields
+
+    echo "</div>";
+}
+
 
 echo <<<_END
 <form action="" method="post"><pre>
 Username:
-<input type="text" name="username">
+<input type="text" name="username" value="$username">
 Password:
-<input type="password" name="password">
+<input type="password" name="password" value="$password">
 First Name:
-<input type="text" name="firstname">
+<input type="text" name="firstname" value="$firstname">
 Last Name:
-<input type="text" name="lastname">
+<input type="text" name="lastname" value="$lastname">
 E-mail:
-<input type="text" name="email">
+<input type="text" name="email" value="$email">
 <input type="submit" value="SUBMIT">
 </pre></form>
 _END;
@@ -122,7 +128,7 @@ while ($row = $result->fetch()) {
 
     echo <<<_END
     <pre>
-    <h2><b>Your Input:</b></h2>
+    <h2 style="color:#A8A8A8"><b>Your Input:</b></h2>
     $r0
     $r1
     $r2
@@ -132,9 +138,10 @@ while ($row = $result->fetch()) {
 _END;
 }
 
-function get_post($pdo, $var) {
+function get_post($pdo, $var)
+{
     return htmlentities($_POST[$var]);
 }
 ?>
-
-</body> </html>
+</body>
+</html>
